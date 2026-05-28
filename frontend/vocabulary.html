@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vocabulary | Reading Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Literata:opsz,wght@7..72,600;7..72,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Main navigation">
+      <div class="brand">
+        <span class="brand-mark">RT</span>
+        <div>
+          <strong>Reading Tracker</strong>
+          <span>Personal library</span>
+        </div>
+      </div>
+
+      <nav class="nav-list" aria-label="Reading sections">
+        <a class="nav-item" href="index.html">Dashboard</a>
+        <a class="nav-item" href="shelf.html">Shelf</a>
+        <a class="nav-item" href="notes.html">Notes</a>
+        <a class="nav-item active" href="vocabulary.html">Vocabulary</a>
+      </nav>
+
+      <div class="sidebar-panel">
+        <span class="panel-label">Vocabulary</span>
+        <strong>41 words</strong>
+        <p>Marked while reading, translated, and kept with the original context.</p>
+      </div>
+    </aside>
+
+    <main class="page">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Vocabulary bank</p>
+          <h1>Turn unknown words into familiar ones.</h1>
+        </div>
+        <button class="primary-action" type="button">Add word</button>
+      </header>
+
+      <section class="vocab-summary" aria-label="Vocabulary summary">
+        <article class="stat-card">
+          <span>Saved words</span>
+          <strong>41</strong>
+          <p>Across 7 books</p>
+        </article>
+        <article class="stat-card accent-green">
+          <span>Translated</span>
+          <strong>33</strong>
+          <p>Ready to review</p>
+        </article>
+        <article class="stat-card accent-coral">
+          <span>Need review</span>
+          <strong>8</strong>
+          <p>Marked this week</p>
+        </article>
+      </section>
+
+      <section class="word-grid" aria-label="Vocabulary words">
+        <article class="word-card">
+          <div>
+            <span class="note-type">Design term</span>
+            <h2>Affordance</h2>
+          </div>
+          <p>A quality that suggests how an object should be used.</p>
+          <small>The Design of Everyday Things, page 184</small>
+        </article>
+
+        <article class="word-card">
+          <div>
+            <span class="note-type">Academic</span>
+            <h2>Salient</h2>
+          </div>
+          <p>Most noticeable, important, or relevant in a particular context.</p>
+          <small>Notes on Observation, page 151</small>
+        </article>
+
+        <article class="word-card">
+          <div>
+            <span class="note-type">Memory</span>
+            <h2>Mnemonic</h2>
+          </div>
+          <p>A pattern, phrase, or device that helps someone remember information.</p>
+          <small>Language and Memory, page 44</small>
+        </article>
+
+        <article class="word-card">
+          <div>
+            <span class="note-type">Reading</span>
+            <h2>Annotation</h2>
+          </div>
+          <p>A note added to explain, connect, or question a passage.</p>
+          <small>Practical Reading Systems, page 96</small>
+        </article>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

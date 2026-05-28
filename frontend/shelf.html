@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shelf | Reading Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Literata:opsz,wght@7..72,600;7..72,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Main navigation">
+      <div class="brand">
+        <span class="brand-mark">RT</span>
+        <div>
+          <strong>Reading Tracker</strong>
+          <span>Personal library</span>
+        </div>
+      </div>
+
+      <nav class="nav-list" aria-label="Reading sections">
+        <a class="nav-item" href="index.html">Dashboard</a>
+        <a class="nav-item active" href="shelf.html">Shelf</a>
+        <a class="nav-item" href="notes.html">Notes</a>
+        <a class="nav-item" href="vocabulary.html">Vocabulary</a>
+      </nav>
+
+      <div class="sidebar-panel">
+        <span class="panel-label">Shelf status</span>
+        <strong>18 books</strong>
+        <p>Four in progress, nine completed, and five waiting to be started.</p>
+      </div>
+    </aside>
+
+    <main class="page">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Library shelf</p>
+          <h1>Keep every book in reading order.</h1>
+        </div>
+        <button class="primary-action" type="button">Upload PDF</button>
+      </header>
+
+      <section class="shelf-toolbar" aria-label="Shelf filters">
+        <button class="filter-chip active" type="button">All books</button>
+        <button class="filter-chip" type="button">Reading</button>
+        <button class="filter-chip" type="button">Completed</button>
+        <button class="filter-chip" type="button">To read</button>
+      </section>
+
+      <section class="shelf-grid" aria-label="Book shelf">
+        <article class="shelf-book">
+          <div class="large-cover cover-teal"><span>DE</span></div>
+          <div class="shelf-book-body">
+            <span class="status-pill light">Reading</span>
+            <h2>The Design of Everyday Things</h2>
+            <p>Page 184 of 368</p>
+            <div class="mini-track" aria-hidden="true"><span style="width: 50%"></span></div>
+          </div>
+        </article>
+
+        <article class="shelf-book">
+          <div class="large-cover cover-rose"><span>NO</span></div>
+          <div class="shelf-book-body">
+            <span class="status-pill light">Reading</span>
+            <h2>Notes on Observation</h2>
+            <p>Page 151 of 240</p>
+            <div class="mini-track" aria-hidden="true"><span style="width: 63%"></span></div>
+          </div>
+        </article>
+
+        <article class="shelf-book">
+          <div class="large-cover cover-gold"><span>LM</span></div>
+          <div class="shelf-book-body">
+            <span class="status-pill light">To read</span>
+            <h2>Language and Memory</h2>
+            <p>Page 44 of 320</p>
+            <div class="mini-track" aria-hidden="true"><span style="width: 14%"></span></div>
+          </div>
+        </article>
+
+        <article class="shelf-book">
+          <div class="large-cover cover-plum"><span>RS</span></div>
+          <div class="shelf-book-body">
+            <span class="status-pill light">Completed</span>
+            <h2>Reading Systems</h2>
+            <p>Finished with 28 notes</p>
+            <div class="mini-track" aria-hidden="true"><span style="width: 100%"></span></div>
+          </div>
+        </article>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

@@ -17,6 +17,25 @@ A personal reading tracker that helps users record books, track reading progress
 - Database: SQLite / PostgreSQL
 - Version Control: Git + GitHub
 
+## Project Structure
+
+```text
+ReadingTracker/
+├── frontend/
+│   ├── index.html
+│   ├── shelf.html
+│   ├── notes.html
+│   ├── vocabulary.html
+│   ├── styles.css
+│   └── assets/
+├── backend/
+│   └── README.md
+├── README.md
+└── LICENSE
+```
+
+The current frontend pages are located in `frontend/`. Open `frontend/index.html` or run a local static server from the `frontend/` folder. The `backend/` folder is prepared for the future Django implementation.
+
 ## My Contribution
 
 - Designed the book tracking system

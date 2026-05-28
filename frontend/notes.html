@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Notes | Reading Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Literata:opsz,wght@7..72,600;7..72,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Main navigation">
+      <div class="brand">
+        <span class="brand-mark">RT</span>
+        <div>
+          <strong>Reading Tracker</strong>
+          <span>Personal library</span>
+        </div>
+      </div>
+
+      <nav class="nav-list" aria-label="Reading sections">
+        <a class="nav-item" href="index.html">Dashboard</a>
+        <a class="nav-item" href="shelf.html">Shelf</a>
+        <a class="nav-item active" href="notes.html">Notes</a>
+        <a class="nav-item" href="vocabulary.html">Vocabulary</a>
+      </nav>
+
+      <div class="sidebar-panel">
+        <span class="panel-label">Notebook</span>
+        <strong>126 notes</strong>
+        <p>Quotes, side notes, and summary drafts collected across your books.</p>
+      </div>
+    </aside>
+
+    <main class="page">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Notes workspace</p>
+          <h1>Collect the ideas worth returning to.</h1>
+        </div>
+        <button class="primary-action" type="button">New note</button>
+      </header>
+
+      <section class="notes-layout">
+        <div class="notes-column">
+          <article class="wide-note featured-note">
+            <span class="note-type">Quote</span>
+            <p>"A good tool disappears when the reader is thinking."</p>
+            <div class="note-meta">
+              <span>The Design of Everyday Things</span>
+              <strong>Page 184</strong>
+            </div>
+          </article>
+
+          <article class="wide-note">
+            <span class="note-type">Side note</span>
+            <h2>Feedback loops make progress visible</h2>
+            <p>Progress tracking works best when the reader can see page position, session time, and captured ideas together.</p>
+            <div class="note-meta">
+              <span>Practical Reading Systems</span>
+              <strong>Page 96</strong>
+            </div>
+          </article>
+
+          <article class="wide-note">
+            <span class="note-type">Summary draft</span>
+            <h2>Chapter 6 summary</h2>
+            <p>The chapter connects confidence with clear signals: where the reader is, what changed, and what still needs attention.</p>
+            <div class="note-meta">
+              <span>Notes on Observation</span>
+              <strong>Page 151</strong>
+            </div>
+          </article>
+        </div>
+
+        <aside class="insight-panel note-sidebar" aria-label="Note categories">
+          <div class="section-header compact">
+            <div>
+              <p class="eyebrow">Tags</p>
+              <h2>Organized by use</h2>
+            </div>
+          </div>
+          <div class="tag-list">
+            <span>Quotes</span>
+            <span>Design</span>
+            <span>Memory</span>
+            <span>Summary</span>
+            <span>Research</span>
+            <span>To revisit</span>
+          </div>
+        </aside>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
