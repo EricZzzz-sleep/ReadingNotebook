@@ -4,10 +4,12 @@ const BOOK_STORE = "books";
 const API_BASE_URL = window.READING_TRACKER_API_URL || "http://localhost:8010";
 const PDF_JS_URL = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs";
 const PDF_WORKER_URL = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs";
+const TESSERACT_URL = "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
 
 let dbPromise;
 let uploadInProgress = false;
 let storagePersistencePromise;
+let tesseractPromise;
 
 function openDatabase() {
   if (dbPromise) return dbPromise;
@@ -269,6 +271,28 @@ function formatDate(value) {
   }).format(new Date(value));
 }
 
+function getOcrCacheKey(bookId, pageNumber) {
+  return `reading-tracker-ocr-v1:${bookId}:${pageNumber}`;
+}
+
+function readOcrCache(bookId, pageNumber) {
+  try {
+    const value = localStorage.getItem(getOcrCacheKey(bookId, pageNumber));
+    return value ? JSON.parse(value) : null;
+  } catch (error) {
+    console.warn("OCR cache could not be read", error);
+    return null;
+  }
+}
+
+function writeOcrCache(bookId, pageNumber, words) {
+  try {
+    localStorage.setItem(getOcrCacheKey(bookId, pageNumber), JSON.stringify(words));
+  } catch (error) {
+    console.warn("OCR cache could not be written", error);
+  }
+}
+
 function progressPercent(book) {
   if (!book.totalPages) return 0;
   return Math.round((book.currentPage / book.totalPages) * 100);
@@ -293,6 +317,22 @@ async function loadPdfJs() {
   const pdfjs = await import(PDF_JS_URL);
   pdfjs.GlobalWorkerOptions.workerSrc = PDF_WORKER_URL;
   return pdfjs;
+}
+
+async function loadTesseract() {
+  if (window.Tesseract) return window.Tesseract;
+  if (tesseractPromise) return tesseractPromise;
+
+  tesseractPromise = new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = TESSERACT_URL;
+    script.async = true;
+    script.onload = () => resolve(window.Tesseract);
+    script.onerror = () => reject(new Error("Tesseract.js could not be loaded."));
+    document.head.append(script);
+  });
+
+  return tesseractPromise;
 }
 
 async function getPdfInfo(file) {
@@ -509,7 +549,6 @@ function bindRenameControls() {
 function createBookCard(book) {
   const percent = progressPercent(book);
   const notes = Array.isArray(book.notes) ? book.notes.length : book.notes || 0;
-  const vocabulary = Array.isArray(book.vocabulary) ? book.vocabulary.length : book.vocabulary || 0;
   const summaries = Array.isArray(book.summaries) ? book.summaries.length : book.summaries || 0;
   const title = escapeHtml(book.title);
   const author = book.author ? ` by ${escapeHtml(book.author)}` : "";
@@ -526,7 +565,6 @@ function createBookCard(book) {
           <div class="mini-track" aria-hidden="true"><span style="width: ${percent}%"></span></div>
           <div class="capture-summary">
             <span>${notes} notes</span>
-            <span>${vocabulary} vocabulary</span>
             <span>${summaries} summaries</span>
           </div>
         </div>
@@ -539,7 +577,6 @@ function createBookCard(book) {
 function createDashboardBook(book) {
   const percent = progressPercent(book);
   const notes = Array.isArray(book.notes) ? book.notes.length : book.notes || 0;
-  const vocabulary = Array.isArray(book.vocabulary) ? book.vocabulary.length : book.vocabulary || 0;
   const title = escapeHtml(book.title);
   const author = book.author ? ` by ${escapeHtml(book.author)}` : "";
 
@@ -560,11 +597,6 @@ function createDashboardBook(book) {
           <strong>${notes}</strong>
           <p>${notes ? "Saved while reading this PDF." : "Add quote notes from the reader."}</p>
         </div>
-        <div>
-          <span class="capture-label">Vocabulary</span>
-          <strong>${vocabulary}</strong>
-          <p>${vocabulary ? "Words with translations are saved." : "Mark unknown words from the reader."}</p>
-        </div>
       </div>
     </article>
   `;
@@ -575,11 +607,10 @@ function getBookCaptureCounts(books) {
     (totals, book) => {
       totals.pages += book.currentPage || 0;
       totals.notes += Array.isArray(book.notes) ? book.notes.length : 0;
-      totals.vocabulary += Array.isArray(book.vocabulary) ? book.vocabulary.length : 0;
       totals.summaries += Array.isArray(book.summaries) ? book.summaries.length : 0;
       return totals;
     },
-    { pages: 0, notes: 0, vocabulary: 0, summaries: 0 }
+    { pages: 0, notes: 0, summaries: 0 }
   );
 }
 
@@ -662,13 +693,11 @@ async function renderDashboard() {
   const statCards = document.querySelectorAll(".stats-grid .stat-card strong");
   if (statCards[1]) statCards[1].textContent = String(totals.pages);
   if (statCards[2]) statCards[2].textContent = String(totals.notes);
-  if (statCards[3]) statCards[3].textContent = String(totals.vocabulary);
   fitSidebarText();
 }
 
-async function renderNotesAndVocabulary() {
+async function renderNotes() {
   const saved = await getSavedBooks();
-  const totals = getBookCaptureCounts(saved);
 
   const notesColumn = document.querySelector("[data-real-notes]");
   if (notesColumn) {
@@ -680,7 +709,6 @@ async function renderNotesAndVocabulary() {
           (book) => {
             const notes = Array.isArray(book.notes) ? book.notes : [];
             const summaries = Array.isArray(book.summaries) ? book.summaries : [];
-            const vocabulary = Array.isArray(book.vocabulary) ? book.vocabulary : [];
             const noteMarkup = notes.length
               ? notes
                   .map(
@@ -717,7 +745,7 @@ async function renderNotesAndVocabulary() {
                 <div>
                   <span class="note-type">Uploaded book</span>
                   <h2>${escapeHtml(book.title)}</h2>
-                  <p>${book.author ? `By ${escapeHtml(book.author)}. ` : ""}${notes.length} notes, ${vocabulary.length} vocabulary words, ${summaries.length} summaries</p>
+                  <p>${book.author ? `By ${escapeHtml(book.author)}. ` : ""}${notes.length} notes, ${summaries.length} summaries</p>
                 </div>
               </div>
               ${noteMarkup}
@@ -730,59 +758,13 @@ async function renderNotesAndVocabulary() {
     }
   }
 
-  const wordGrid = document.querySelector("[data-real-vocabulary]");
-  if (wordGrid) {
-    const vocabStats = document.querySelectorAll(".vocab-summary .stat-card strong");
-    if (vocabStats[0]) vocabStats[0].textContent = String(totals.vocabulary);
-    if (vocabStats[1]) vocabStats[1].textContent = String(totals.vocabulary);
-    if (vocabStats[2]) vocabStats[2].textContent = "0";
-
-    if (!saved.length) {
-      renderEmptyState(wordGrid, "Upload a PDF first. Vocabulary will be grouped under each real book.");
-    } else {
-      wordGrid.innerHTML = saved
-        .map(
-          (book) => {
-            const vocabulary = Array.isArray(book.vocabulary) ? book.vocabulary : [];
-            const wordMarkup = vocabulary.length
-              ? vocabulary
-                  .map(
-                    (entry) => `
-                      <div>
-                        <strong>${escapeHtml(entry.word)}</strong>
-                        <span>${escapeHtml(entry.translation)} &middot; Page ${entry.page} &middot; ${formatDate(entry.createdAt)}</span>
-                      </div>
-                    `
-                  )
-                  .join("")
-              : "<div><strong>Ready for vocabulary</strong><span>Words marked while reading this PDF will appear here.</span></div>";
-
-            return `
-            <article class="word-card book-word-card">
-              <div class="book-notebook-header">
-                ${createCoverMarkup(book)}
-                <div>
-                  <span class="note-type">${escapeHtml(book.title)}</span>
-                  <h2>${vocabulary.length} saved words</h2>
-                </div>
-              </div>
-              <div class="word-list">
-                ${wordMarkup}
-              </div>
-            </article>
-          `;
-          }
-        )
-        .join("");
-    }
-  }
   fitSidebarText();
 }
 
 async function refreshCurrentPage() {
   await renderDashboard();
   await renderShelf();
-  await renderNotesAndVocabulary();
+  await renderNotes();
 
   if (document.body.dataset.page === "reader") {
     const params = new URLSearchParams(window.location.search);
@@ -824,80 +806,289 @@ async function renderReader() {
   const progressBar = document.querySelector("#readerProgressBar");
   const prev = document.querySelector("#prevPage");
   const next = document.querySelector("#nextPage");
+  const zoomOut = document.querySelector("#zoomOut");
+  const zoomIn = document.querySelector("#zoomIn");
+  const zoomStatus = document.querySelector("#zoomStatus");
   const rename = document.querySelector("#readerRename");
   const noteForm = document.querySelector("[data-note-form]");
-  const vocabularyForm = document.querySelector("[data-vocabulary-form]");
-  const summaryForm = document.querySelector("[data-summary-form]");
+  const textLayer = document.querySelector("#textLayer");
+  const textLayerStatus = document.querySelector("#textLayerStatus");
+  const saveSelectedQuote = document.querySelector("#saveSelectedQuote");
   const context = canvas.getContext("2d");
+  const pdfFrame = canvas.parentElement;
+  const pdfStage = canvas.closest(".pdf-stage");
+  let zoomLevel = 1;
+  let lastPinchDistance = null;
+  let currentSelectedQuote = "";
 
   title.textContent = book.title;
   sidebarTitle.textContent = book.title;
   rename.dataset.renameBook = book.id;
   fitSidebarText();
 
+  async function renderPageToCanvas(page, targetCanvas, targetContext, scale) {
+    const viewport = page.getViewport({ scale });
+    targetCanvas.width = viewport.width;
+    targetCanvas.height = viewport.height;
+    await page.render({ canvasContext: targetContext, viewport }).promise;
+    return viewport;
+  }
+
+  function clearTextLayer() {
+    textLayer.innerHTML = "";
+    textLayer.style.width = `${canvas.width}px`;
+    textLayer.style.height = `${canvas.height}px`;
+    pdfFrame.style.width = `${canvas.width}px`;
+    pdfFrame.style.height = `${canvas.height}px`;
+    currentSelectedQuote = "";
+    saveSelectedQuote.hidden = true;
+  }
+
+  function setTextLayerStatus(value) {
+    textLayerStatus.textContent = value;
+  }
+
+  function getSelectedQuoteFromLayer() {
+    const selection = window.getSelection();
+    if (!selection || selection.isCollapsed || !selection.rangeCount) return "";
+    const range = selection.getRangeAt(0);
+    if (!textLayer.contains(range.commonAncestorContainer)) return "";
+    return normalizeCaptureText(selection.toString());
+  }
+
+  function refreshSelectionAction() {
+    currentSelectedQuote = getSelectedQuoteFromLayer();
+    saveSelectedQuote.hidden = !currentSelectedQuote;
+    if (currentSelectedQuote && noteForm && document.activeElement !== noteForm.elements.quote) {
+      noteForm.elements.quote.value = currentSelectedQuote;
+    }
+    if (currentSelectedQuote) {
+      setTextLayerStatus("Selected text copied to the quote box.");
+    }
+  }
+
+  function appendTextSpan(text, left, top, width, height, angle = 0) {
+    const span = document.createElement("span");
+    span.textContent = text;
+    span.style.left = `${left}px`;
+    span.style.top = `${top}px`;
+    span.style.width = `${Math.max(width, 1)}px`;
+    span.style.height = `${Math.max(height, 1)}px`;
+    span.style.fontSize = `${Math.max(height, 1)}px`;
+    span.style.transform = angle ? `rotate(${angle}rad)` : "";
+    textLayer.append(span);
+  }
+
+  async function renderPdfTextLayer(page, viewport) {
+    const textContent = await page.getTextContent();
+    const items = textContent.items.filter((item) => normalizeCaptureText(item.str || ""));
+    const meaningfulText = normalizeCaptureText(items.map((item) => item.str).join(" "));
+    if (meaningfulText.length < 8) return false;
+
+    items.forEach((item) => {
+      const transform = pdfjs.Util.transform(viewport.transform, item.transform);
+      const angle = Math.atan2(transform[1], transform[0]);
+      const fontHeight = Math.hypot(transform[2], transform[3]) || Math.hypot(transform[0], transform[1]) || 12;
+      const width = Math.max((item.width || item.str.length * fontHeight * 0.45) * viewport.scale, fontHeight);
+      appendTextSpan(item.str, transform[4], transform[5] - fontHeight, width, fontHeight, angle);
+    });
+
+    return true;
+  }
+
+  function renderOcrTextLayer(words) {
+    const width = canvas.width;
+    const height = canvas.height;
+    words.forEach((word) => {
+      if (!word.text) return;
+      appendTextSpan(
+        word.text,
+        word.x0 * width,
+        word.y0 * height,
+        (word.x1 - word.x0) * width,
+        (word.y1 - word.y0) * height
+      );
+    });
+  }
+
+  async function runOcrForPage(pageNumber) {
+    const cached = readOcrCache(book.id, pageNumber);
+    if (cached?.length) {
+      renderOcrTextLayer(cached);
+      setTextLayerStatus("Selectable text from OCR cache.");
+      return true;
+    }
+
+    setTextLayerStatus("Reading page text with OCR...");
+    const Tesseract = await loadTesseract();
+    const result = await Tesseract.recognize(canvas, "eng");
+    const sourceWords = result?.data?.words || [];
+    const words = sourceWords
+      .filter((word) => word.bbox)
+      .map((word) => ({
+        text: normalizeCaptureText(word.text || ""),
+        x0: word.bbox.x0 / canvas.width,
+        y0: word.bbox.y0 / canvas.height,
+        x1: word.bbox.x1 / canvas.width,
+        y1: word.bbox.y1 / canvas.height,
+      }))
+      .filter((word) => word.text && word.x1 > word.x0 && word.y1 > word.y0);
+
+    if (!words.length) return false;
+    writeOcrCache(book.id, pageNumber, words);
+    renderOcrTextLayer(words);
+    setTextLayerStatus("Selectable text from OCR.");
+    return true;
+  }
+
+  async function renderSelectableText(page, viewport, pageNumber) {
+    clearTextLayer();
+    setTextLayerStatus("Preparing selectable text...");
+
+    try {
+      if (await renderPdfTextLayer(page, viewport)) {
+        setTextLayerStatus("Selectable text ready.");
+        return;
+      }
+
+      if (await runOcrForPage(pageNumber)) return;
+      setTextLayerStatus("No selectable text found. Use the quote box manually.");
+    } catch (error) {
+      console.warn("Selectable text could not be prepared", error);
+      setTextLayerStatus("Text selection unavailable. Use the quote box manually.");
+    }
+  }
+
   async function drawPage(pageNumber) {
     message.hidden = true;
     const page = await pdf.getPage(pageNumber);
-    const containerWidth = Math.min(canvas.parentElement.clientWidth - 32, 980);
     const baseViewport = page.getViewport({ scale: 1 });
-    const scale = containerWidth / baseViewport.width;
-    const viewport = page.getViewport({ scale });
+    const stageRect = pdfStage.getBoundingClientRect();
+    const maxWidth = stageRect.width - 24;
+    const maxHeight = Math.min(stageRect.height - 24, window.innerHeight - stageRect.top - 24);
+    const fitScale = Math.min(maxWidth / baseViewport.width, maxHeight / baseViewport.height);
+    const scale = fitScale * zoomLevel;
 
-    canvas.width = viewport.width;
-    canvas.height = viewport.height;
+    const viewport = await renderPageToCanvas(page, canvas, context, scale);
+    await renderSelectableText(page, viewport, pageNumber);
 
-    await page.render({ canvasContext: context, viewport }).promise;
     const percent = Math.round((pageNumber / pdf.numPages) * 100);
     pageStatus.textContent = `Page ${pageNumber} of ${pdf.numPages}`;
     progressStatus.textContent = `${percent}% complete`;
     progressBar.style.width = `${percent}%`;
-    sidebarMeta.textContent = `${book.author ? `By ${book.author}. ` : ""}Page ${pageNumber} of ${pdf.numPages}`;
+    sidebarMeta.textContent = `${book.author ? `By ${book.author}. ` : ""}${pageStatus.textContent}`;
+    zoomStatus.textContent = `${Math.round(zoomLevel * 100)}%`;
     prev.disabled = pageNumber <= 1;
     next.disabled = pageNumber >= pdf.numPages;
     await updateBookPage(book.id, pageNumber);
   }
 
-  prev.addEventListener("click", async () => {
-    if (currentPage <= 1) return;
-    currentPage -= 1;
+  async function setZoom(nextZoom) {
+    const previousZoom = zoomLevel;
+    zoomLevel = Math.min(Math.max(nextZoom, 0.75), 2.5);
+    if (Math.abs(previousZoom - zoomLevel) < 0.01) return;
     await drawPage(currentPage);
+  }
+
+  async function goToPreviousPage() {
+    if (currentPage <= 1) return;
+    currentPage = Math.max(1, currentPage - 1);
+    await drawPage(currentPage);
+  }
+
+  async function goToNextPage() {
+    if (currentPage >= pdf.numPages) return;
+    currentPage = Math.min(pdf.numPages, currentPage + 1);
+    await drawPage(currentPage);
+  }
+
+  prev.addEventListener("click", goToPreviousPage);
+  next.addEventListener("click", goToNextPage);
+  zoomOut?.addEventListener("click", () => setZoom(zoomLevel - 0.15));
+  zoomIn?.addEventListener("click", () => setZoom(zoomLevel + 0.15));
+
+  pdfStage.addEventListener(
+    "wheel",
+    async (event) => {
+      if (!event.ctrlKey && !event.metaKey) return;
+      event.preventDefault();
+      await setZoom(zoomLevel + (event.deltaY < 0 ? 0.12 : -0.12));
+    },
+    { passive: false }
+  );
+
+  pdfStage.addEventListener(
+    "touchstart",
+    (event) => {
+      if (event.touches.length !== 2) return;
+      const [first, second] = event.touches;
+      lastPinchDistance = Math.hypot(first.clientX - second.clientX, first.clientY - second.clientY);
+    },
+    { passive: false }
+  );
+
+  pdfStage.addEventListener(
+    "touchmove",
+    async (event) => {
+      if (event.touches.length !== 2 || !lastPinchDistance) return;
+      event.preventDefault();
+      const [first, second] = event.touches;
+      const distance = Math.hypot(first.clientX - second.clientX, first.clientY - second.clientY);
+      await setZoom(zoomLevel * (distance / lastPinchDistance));
+      lastPinchDistance = distance;
+    },
+    { passive: false }
+  );
+
+  pdfStage.addEventListener("touchend", () => {
+    lastPinchDistance = null;
   });
 
-  next.addEventListener("click", async () => {
-    if (currentPage >= pdf.numPages) return;
-    currentPage += 1;
-    await drawPage(currentPage);
+  document.addEventListener("selectionchange", refreshSelectionAction);
+  textLayer.addEventListener("mouseup", refreshSelectionAction);
+  textLayer.addEventListener("keyup", refreshSelectionAction);
+
+  saveSelectedQuote.addEventListener("click", async () => {
+    const quote = currentSelectedQuote || getSelectedQuoteFromLayer() || normalizeCaptureText(noteForm.elements.quote.value);
+    if (!quote) return;
+
+    noteForm.elements.quote.value = quote;
+    const note = normalizeCaptureText(noteForm.elements.note.value);
+    await addBookCapture(book.id, "notes", { quote, note, page: currentPage });
+    noteForm.reset();
+    window.getSelection()?.removeAllRanges();
+    refreshSelectionAction();
+    setTextLayerStatus("Quote saved.");
+    await refreshCurrentPage();
+  });
+
+  document.addEventListener("keydown", async (event) => {
+    if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return;
+    const editable = event.target.closest("input, textarea, select, [contenteditable='true']");
+    if (editable) return;
+
+    if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      await goToPreviousPage();
+    }
+
+    if (event.key === "ArrowRight") {
+      event.preventDefault();
+      await goToNextPage();
+    }
   });
 
   noteForm?.addEventListener("submit", async (event) => {
     event.preventDefault();
-    const quote = normalizeCaptureText(noteForm.elements.quote.value);
+    const quote = normalizeCaptureText(noteForm.elements.quote.value) || currentSelectedQuote || getSelectedQuoteFromLayer();
     const note = normalizeCaptureText(noteForm.elements.note.value);
     if (!quote) return;
 
     await addBookCapture(book.id, "notes", { quote, note, page: currentPage });
     noteForm.reset();
-    await refreshCurrentPage();
-  });
-
-  vocabularyForm?.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const word = normalizeCaptureText(vocabularyForm.elements.word.value);
-    const translation = normalizeCaptureText(vocabularyForm.elements.translation.value);
-    if (!word || !translation) return;
-
-    await addBookCapture(book.id, "vocabulary", { word, translation, page: currentPage });
-    vocabularyForm.reset();
-    await refreshCurrentPage();
-  });
-
-  summaryForm?.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const summary = normalizeCaptureText(summaryForm.elements.summary.value);
-    if (!summary) return;
-
-    await addBookCapture(book.id, "summaries", { summary, page: currentPage });
-    summaryForm.reset();
+    window.getSelection()?.removeAllRanges();
+    refreshSelectionAction();
+    setTextLayerStatus("Quote saved.");
     await refreshCurrentPage();
   });
 
@@ -914,7 +1105,7 @@ async function init() {
   bindRenameControls();
   await renderDashboard();
   await renderShelf();
-  await renderNotesAndVocabulary();
+  await renderNotes();
   await renderReader();
   fitSidebarText();
 }

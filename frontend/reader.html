@@ -10,10 +10,10 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body data-page="reader">
+  <div class="reader-sidebar-trigger" aria-hidden="true"></div>
   <div class="app-shell">
     <aside class="sidebar" aria-label="Main navigation">
       <div class="brand">
-        <span class="brand-mark">RT</span>
         <div>
           <strong>Reading Tracker</strong>
           <span>Personal library</span>
@@ -24,7 +24,6 @@
         <a class="nav-item" href="index.html">Dashboard</a>
         <a class="nav-item active" href="shelf.html" aria-current="page">Shelf</a>
         <a class="nav-item" href="notes.html">Notes</a>
-        <a class="nav-item" href="vocabulary.html">Vocabulary</a>
       </nav>
 
       <div class="sidebar-panel">
@@ -46,71 +45,55 @@
         </div>
       </header>
 
-      <section class="reader-shell" aria-label="PDF reader">
-        <div class="reader-toolbar">
-          <button class="ghost-action" id="prevPage" type="button">Previous</button>
-          <div class="reader-status">
-            <strong id="pageStatus">Page - of -</strong>
-            <span id="progressStatus">0% complete</span>
+      <div class="reader-workspace">
+        <section class="reader-shell" aria-label="PDF reader">
+          <div class="reader-toolbar">
+            <button class="ghost-action" id="prevPage" type="button">Previous</button>
+            <div class="reader-status">
+              <strong id="pageStatus">Page - of -</strong>
+              <span id="progressStatus">0% complete</span>
+            </div>
+            <div class="zoom-controls" aria-label="Zoom controls">
+              <button class="ghost-action" id="zoomOut" type="button" aria-label="Zoom out">-</button>
+              <span id="zoomStatus">100%</span>
+              <button class="ghost-action" id="zoomIn" type="button" aria-label="Zoom in">+</button>
+            </div>
+            <button class="ghost-action" id="nextPage" type="button">Next</button>
           </div>
-          <button class="ghost-action" id="nextPage" type="button">Next</button>
-        </div>
 
-        <div class="reader-progress" aria-hidden="true">
-          <span id="readerProgressBar"></span>
-        </div>
-
-        <div class="pdf-stage">
-          <canvas id="pdfCanvas"></canvas>
-          <p class="empty-state" id="readerMessage">Loading PDF...</p>
-        </div>
-      </section>
-
-      <section class="capture-panel" aria-label="Reading captures">
-        <form class="capture-card" data-note-form>
-          <div>
-            <p class="eyebrow">Quote note</p>
-            <h2>Save a passage</h2>
+          <div class="reader-progress" aria-hidden="true">
+            <span id="readerProgressBar"></span>
           </div>
-          <label class="field-label">
-            <span>Quote</span>
-            <textarea class="field-input text-area" name="quote" rows="4" placeholder="Paste or type the quote from this page." required></textarea>
-          </label>
-          <label class="field-label">
-            <span>Side note</span>
-            <textarea class="field-input text-area" name="note" rows="3" placeholder="Why does it matter?"></textarea>
-          </label>
-          <button class="primary-action" type="submit">Save Note</button>
-        </form>
+          <p class="text-layer-status" id="textLayerStatus">Preparing selectable text...</p>
 
-        <form class="capture-card" data-vocabulary-form>
-          <div>
-            <p class="eyebrow">Vocabulary</p>
-            <h2>Mark a word</h2>
+          <div class="pdf-stage">
+            <div class="pdf-page-frame">
+              <canvas id="pdfCanvas"></canvas>
+              <div class="text-layer" id="textLayer" aria-label="Selectable page text"></div>
+              <button class="selection-action" id="saveSelectedQuote" type="button" hidden>Save Quote</button>
+            </div>
+            <p class="empty-state" id="readerMessage">Loading PDF...</p>
           </div>
-          <label class="field-label">
-            <span>Word</span>
-            <input class="field-input" name="word" type="text" maxlength="80" required>
-          </label>
-          <label class="field-label">
-            <span>Translation</span>
-            <input class="field-input" name="translation" type="text" maxlength="160" placeholder="Meaning or translation" required>
-          </label>
-          <button class="primary-action" type="submit">Save Word</button>
-        </form>
+        </section>
 
-        <form class="capture-card capture-card-wide" data-summary-form>
-          <div>
-            <p class="eyebrow">Summary</p>
-            <h2>Write a summary</h2>
-          </div>
-          <label class="field-label">
-            <span>Summary</span>
-            <textarea class="field-input text-area" name="summary" rows="5" placeholder="Capture the main idea from this reading session." required></textarea>
-          </label>
-          <button class="primary-action" type="submit">Save Summary</button>
-        </form>
-      </section>
+        <section class="capture-panel" aria-label="Reading captures">
+          <form class="capture-card" data-note-form>
+            <div>
+              <p class="eyebrow">Quote note</p>
+              <h2>Save a passage</h2>
+            </div>
+            <label class="field-label">
+              <span>Quote</span>
+              <textarea class="field-input text-area" name="quote" rows="4" placeholder="Paste or type the quote from this page." required></textarea>
+            </label>
+            <label class="field-label">
+              <span>Side note</span>
+              <textarea class="field-input text-area" name="note" rows="3" placeholder="Why does it matter?"></textarea>
+            </label>
+            <button class="primary-action" type="submit">Save Note</button>
+          </form>
+        </section>
+      </div>
     </main>
   </div>
 
