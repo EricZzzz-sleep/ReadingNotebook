@@ -13,6 +13,11 @@ CAPTURE_FIELDS = {
     "vocabulary": {"word", "translation", "page"},
     "summaries": {"summary", "page"},
 }
+CAPTURE_REQUIRED_FIELDS = {
+    "notes": "quote",
+    "vocabulary": "word",
+    "summaries": "summary",
+}
 
 
 def add_cors_headers(response):
@@ -28,8 +33,47 @@ def json_response(data, status=200):
 
 def parse_json_body(request):
     if not request.body:
-        return {}
-    return json.loads(request.body.decode("utf-8"))
+        return {}, None
+    try:
+        return json.loads(request.body.decode("utf-8")), None
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return None, "Request body must be valid JSON."
+
+
+def parse_positive_int(value, field_name, default=None):
+    if value in (None, ""):
+        return default, None
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return None, f"{field_name} must be a positive integer."
+    if parsed < 1:
+        return None, f"{field_name} must be a positive integer."
+    return parsed, None
+
+
+def parse_book_id(book_id):
+    try:
+        return uuid.UUID(str(book_id)), None
+    except (TypeError, ValueError):
+        return None, "Book id must be a valid UUID."
+
+
+def get_book_or_error(book_id):
+    parsed_id, error = parse_book_id(book_id)
+    if error:
+        return None, json_response({"error": error}, status=400)
+    try:
+        return Book.objects.get(id=parsed_id), None
+    except Book.DoesNotExist:
+        return None, json_response({"error": "Book not found."}, status=404)
+
+
+def clean_text(value, max_length=None):
+    cleaned = str(value or "").strip()
+    if max_length:
+        return cleaned[:max_length]
+    return cleaned
 
 
 def serialize_book(book, request):
@@ -97,21 +141,28 @@ def books_collection(request):
 
         if uploaded_pdf.content_type and uploaded_pdf.content_type != "application/pdf":
             return json_response({"error": "Only PDF files are allowed."}, status=400)
+        if not uploaded_pdf.name.lower().endswith(".pdf"):
+            return json_response({"error": "Only PDF files are allowed."}, status=400)
 
-        title = request.POST.get("title") or uploaded_pdf.name.rsplit(".", 1)[0]
-        total_pages = int(request.POST.get("totalPages") or 1)
+        total_pages, error = parse_positive_int(request.POST.get("totalPages"), "totalPages", default=1)
+        if error:
+            return json_response({"error": error}, status=400)
+
+        title = clean_text(request.POST.get("title") or uploaded_pdf.name.rsplit(".", 1)[0], 160)
+        if not title:
+            return json_response({"error": "Title is required."}, status=400)
         book = Book.objects.create(
             title=title,
-            author=request.POST.get("author", ""),
+            author=clean_text(request.POST.get("author", ""), 120),
             file_name=uploaded_pdf.name,
             file_size=uploaded_pdf.size,
             file_type=uploaded_pdf.content_type or "application/pdf",
             pdf=uploaded_pdf,
-            total_pages=max(total_pages, 1),
+            total_pages=total_pages,
             current_page=1,
-            cover=request.POST.get("cover") or "PDF",
-            cover_image=request.POST.get("coverImage", ""),
-            color=request.POST.get("color") or "cover-teal",
+            cover=clean_text(request.POST.get("cover") or "PDF", 12) or "PDF",
+            cover_image=str(request.POST.get("coverImage", "")),
+            color=clean_text(request.POST.get("color") or "cover-teal", 40) or "cover-teal",
         )
         return json_response({"book": serialize_book(book, request)}, status=201)
 
@@ -123,24 +174,33 @@ def book_detail(request, book_id):
     if request.method == "OPTIONS":
         return options_response()
 
-    try:
-        book = Book.objects.get(id=book_id)
-    except Book.DoesNotExist:
-        return json_response({"error": "Book not found."}, status=404)
+    book, error_response = get_book_or_error(book_id)
+    if error_response:
+        return error_response
 
     if request.method == "GET":
         return json_response({"book": serialize_book(book, request)})
 
     if request.method == "PATCH":
-        data = parse_json_body(request)
+        data, error = parse_json_body(request)
+        if error:
+            return json_response({"error": error}, status=400)
+        if not isinstance(data, dict):
+            return json_response({"error": "Request body must be a JSON object."}, status=400)
         if "title" in data:
-            book.title = str(data["title"]).strip()[:160]
+            title = clean_text(data["title"], 160)
+            if not title:
+                return json_response({"error": "Title cannot be blank."}, status=400)
+            book.title = title
         if "author" in data:
-            book.author = str(data["author"]).strip()[:120]
+            book.author = clean_text(data["author"], 120)
         if "currentPage" in data:
-            book.current_page = max(1, min(int(data["currentPage"]), book.total_pages))
+            current_page, error = parse_positive_int(data["currentPage"], "currentPage")
+            if error:
+                return json_response({"error": error}, status=400)
+            book.current_page = min(current_page, book.total_pages)
         if "cover" in data:
-            book.cover = str(data["cover"]).strip()[:12] or "PDF"
+            book.cover = clean_text(data["cover"], 12) or "PDF"
         book.save()
         return json_response({"book": serialize_book(book, request)})
 
@@ -155,24 +215,34 @@ def book_captures(request, book_id):
     if request.method != "POST":
         return json_response({"error": "Method not allowed."}, status=405)
 
-    try:
-        book = Book.objects.get(id=book_id)
-    except Book.DoesNotExist:
-        return json_response({"error": "Book not found."}, status=404)
+    book, error_response = get_book_or_error(book_id)
+    if error_response:
+        return error_response
 
-    data = parse_json_body(request)
+    data, error = parse_json_body(request)
+    if error:
+        return json_response({"error": error}, status=400)
+    if not isinstance(data, dict):
+        return json_response({"error": "Request body must be a JSON object."}, status=400)
     capture_type = data.get("type")
     if capture_type not in CAPTURE_FIELDS:
         return json_response({"error": "Invalid capture type."}, status=400)
 
     allowed_fields = CAPTURE_FIELDS[capture_type]
     capture = {
-        key: data.get(key, "")
+        key: clean_text(data.get(key, ""))
         for key in allowed_fields
         if key in data
     }
+    required_field = CAPTURE_REQUIRED_FIELDS[capture_type]
+    if not capture.get(required_field):
+        return json_response({"error": f"{required_field} is required."}, status=400)
+
+    page, error = parse_positive_int(capture.get("page") or book.current_page, "page")
+    if error:
+        return json_response({"error": error}, status=400)
     capture["id"] = str(uuid.uuid4())
-    capture["page"] = max(1, min(int(capture.get("page") or book.current_page), book.total_pages))
+    capture["page"] = min(page, book.total_pages)
     capture["createdAt"] = timezone.now().isoformat()
 
     captures = getattr(book, capture_type)

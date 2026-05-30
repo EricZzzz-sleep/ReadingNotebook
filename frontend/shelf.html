@@ -37,10 +37,10 @@
       </header>
 
       <section class="shelf-toolbar" aria-label="Shelf filters">
-        <button class="filter-chip active" type="button">All books</button>
-        <button class="filter-chip" type="button">Reading</button>
-        <button class="filter-chip" type="button">Completed</button>
-        <button class="filter-chip" type="button">To read</button>
+        <button class="filter-chip active" type="button" data-shelf-filter="all" aria-pressed="true">All books</button>
+        <button class="filter-chip" type="button" data-shelf-filter="reading" aria-pressed="false">Reading</button>
+        <button class="filter-chip" type="button" data-shelf-filter="completed" aria-pressed="false">Completed</button>
+        <button class="filter-chip" type="button" data-shelf-filter="to-read" aria-pressed="false">To read</button>
       </section>
 
       <section class="shelf-grid" aria-label="Book shelf" data-book-grid>

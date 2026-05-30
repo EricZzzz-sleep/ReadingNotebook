@@ -636,6 +636,31 @@ h1 {
   background: var(--teal);
 }
 
+.app-status {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 40;
+  max-width: min(380px, calc(100vw - 36px));
+  padding: 14px 16px;
+  border: 1px solid rgba(47, 125, 122, 0.22);
+  border-radius: 8px;
+  color: var(--ink);
+  background: #ffffff;
+  box-shadow: var(--shadow);
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.app-status[hidden] {
+  display: none;
+}
+
+.app-status[data-status-type="error"] {
+  border-color: rgba(191, 75, 65, 0.35);
+  background: #fff6f4;
+}
+
 .shelf-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

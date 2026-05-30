@@ -35,7 +35,7 @@ ReadingTracker/
 └── LICENSE
 ```
 
-The current frontend pages are located in `frontend/`. The root `index.html` redirects to the dashboard page for easier opening and deployment. The `backend/` folder is prepared for the future Django implementation.
+The current frontend pages are located in `frontend/`. The Django backend in `backend/` serves those pages, stores book metadata, exposes the API, and saves uploaded PDFs under `backend/uploads/pdfs/`. The root `index.html` redirects to the dashboard page for easier direct opening and deployment.
 
 ## Run Locally
 
@@ -64,7 +64,7 @@ Then open:
 - Dashboard: `http://localhost:8000/`
 - Shelf: `http://localhost:8000/shelf.html`
 - Notes: `http://localhost:8000/notes.html`
-Uploaded PDFs are saved to `backend/uploads/pdfs/`, book metadata is stored in `backend/db.sqlite3`, and PDF pages are opened with PDF.js. After upload, each PDF appears as a selectable book on the Shelf page.
+Uploaded PDFs are saved to `backend/uploads/pdfs/`, book metadata is stored in `backend/db.sqlite3`, and PDF pages are opened with PDF.js. After upload, each PDF appears as a selectable book on the Shelf page. The Shelf filters use saved progress: To read is page 1, Reading is between page 1 and the final page, and Completed is the final page.
 
 If the backend is not running, the frontend falls back to browser IndexedDB storage. That fallback is separated by origin, so `http://localhost:8000/` and `http://localhost:8002/` have different local browser libraries.
 

@@ -12,6 +12,31 @@ let uploadInProgress = false;
 let storagePersistencePromise;
 let tesseractPromise;
 
+function ensureStatusRegion() {
+  let region = document.querySelector("[data-app-status]");
+  if (region) return region;
+
+  region = document.createElement("div");
+  region.className = "app-status";
+  region.dataset.appStatus = "";
+  region.setAttribute("role", "status");
+  region.setAttribute("aria-live", "polite");
+  document.body.append(region);
+  return region;
+}
+
+function showStatus(message, type = "info") {
+  const region = ensureStatusRegion();
+  region.textContent = message;
+  region.dataset.statusType = type;
+  region.hidden = false;
+
+  window.clearTimeout(region.hideTimer);
+  region.hideTimer = window.setTimeout(() => {
+    region.hidden = true;
+  }, type === "error" ? 7000 : 4200);
+}
+
 function openDatabase() {
   if (dbPromise) return dbPromise;
 
@@ -414,15 +439,17 @@ async function getBookPdfBuffer(book) {
 async function handlePdfUpload(file) {
   if (uploadInProgress) return;
   if (!file || (file.type && file.type !== "application/pdf") || !file.name.toLowerCase().endsWith(".pdf")) {
-    alert("Please choose a PDF file.");
+    showStatus("Please choose a PDF file.", "error");
     return;
   }
 
   uploadInProgress = true;
+  showStatus("Opening PDF...");
   const { totalPages, coverImage } = await getPdfInfo(file);
   const title = formatTitle(file.name);
 
   try {
+    showStatus("Saving PDF to the backend...");
     const backendBook = await uploadBookToBackend(file, {
       title,
       totalPages,
@@ -434,6 +461,7 @@ async function handlePdfUpload(file) {
     return;
   } catch (error) {
     console.warn("Backend upload unavailable, saving PDF in browser storage", error);
+    showStatus("Backend unavailable. Saving this PDF in browser storage instead.");
   }
 
   const storagePersisted = await requestPersistentLocalStorage();
@@ -464,6 +492,7 @@ async function handlePdfUpload(file) {
     throw new Error("The PDF could not be saved locally.");
   }
 
+  showStatus("PDF saved. Opening reader...");
   window.location.href = `reader.html?id=${book.id}`;
 }
 
@@ -483,7 +512,7 @@ function bindUploadButtons() {
       await handlePdfUpload(file);
     } catch (error) {
       console.error(error);
-      alert("The PDF could not be opened or saved locally. Please try another file.");
+      showStatus("The PDF could not be opened or saved. Please try another file.", "error");
     } finally {
       input.value = "";
       uploadInProgress = false;
@@ -494,6 +523,35 @@ function bindUploadButtons() {
     const text = button.textContent?.toLowerCase() || "";
     if (!button.matches("[data-upload-pdf]") && !text.includes("upload")) return;
     button.addEventListener("click", () => input.click());
+  });
+}
+
+function getActiveShelfFilter() {
+  return document.querySelector("[data-shelf-filter].active")?.dataset.shelfFilter || "all";
+}
+
+function matchesShelfFilter(book, filter) {
+  const currentPage = Number(book.currentPage || 1);
+  const totalPages = Number(book.totalPages || 1);
+
+  if (filter === "completed") return currentPage >= totalPages;
+  if (filter === "reading") return currentPage > 1 && currentPage < totalPages;
+  if (filter === "to-read") return currentPage <= 1;
+  return true;
+}
+
+function bindShelfFilters() {
+  document.addEventListener("click", async (event) => {
+    const button = event.target.closest("[data-shelf-filter]");
+    if (!button) return;
+
+    document.querySelectorAll("[data-shelf-filter]").forEach((chip) => {
+      const active = chip === button;
+      chip.classList.toggle("active", active);
+      chip.setAttribute("aria-pressed", String(active));
+    });
+
+    await renderShelf();
   });
 }
 
@@ -748,7 +806,15 @@ async function renderShelf(loadedBooks) {
     return;
   }
 
-  grid.innerHTML = books.map(createBookCard).join("");
+  const filter = getActiveShelfFilter();
+  const visibleBooks = books.filter((book) => matchesShelfFilter(book, filter));
+  if (!visibleBooks.length) {
+    renderEmptyState(grid, "No books match this shelf filter yet.");
+    fitSidebarText();
+    return;
+  }
+
+  grid.innerHTML = visibleBooks.map(createBookCard).join("");
   fitSidebarText();
 }
 
@@ -862,16 +928,36 @@ async function renderReader() {
   const params = new URLSearchParams(window.location.search);
   const id = params.get("id");
   const message = document.querySelector("#readerMessage");
-  const book = id ? await getBook(id) : null;
+  let book = null;
+
+  try {
+    book = id ? await getBook(id) : null;
+  } catch (error) {
+    console.error(error);
+    message.textContent = "This book could not be loaded. Restart the server with make run, then try again.";
+    message.hidden = false;
+    showStatus("Reader could not load this book.", "error");
+    return;
+  }
 
   if (!book) {
     message.textContent = "Book not found. Return to Shelf and choose an uploaded PDF.";
     return;
   }
 
-  const pdfjs = await loadPdfJs();
-  const buffer = await getBookPdfBuffer(book);
-  const pdf = await pdfjs.getDocument({ data: buffer }).promise;
+  let pdfjs;
+  let pdf;
+  try {
+    pdfjs = await loadPdfJs();
+    const buffer = await getBookPdfBuffer(book);
+    pdf = await pdfjs.getDocument({ data: buffer }).promise;
+  } catch (error) {
+    console.error(error);
+    message.textContent = "The saved PDF could not be opened. Return to Shelf and try uploading it again.";
+    message.hidden = false;
+    showStatus("The saved PDF could not be opened.", "error");
+    return;
+  }
   let currentPage = Math.min(Math.max(book.currentPage || 1, 1), pdf.numPages);
 
   const title = document.querySelector("#readerTitle");
@@ -1179,6 +1265,7 @@ async function renderReader() {
 async function init() {
   bindUploadButtons();
   bindRenameControls();
+  bindShelfFilters();
   const books = await getSavedBooks();
   try {
     await renderDashboard(books);
@@ -1194,5 +1281,5 @@ async function init() {
 
 init().catch((error) => {
   console.error(error);
-  alert("Reading Tracker could not start. Please refresh and try again.");
+  showStatus("Reading Tracker could not start. Refresh the page or restart the server with make run.", "error");
 });
