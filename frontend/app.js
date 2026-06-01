@@ -323,11 +323,14 @@ function normalizeCaptureText(value) {
 }
 
 function formatDate(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Saved date unknown";
+
   return new Intl.DateTimeFormat("en", {
     month: "short",
     day: "numeric",
     year: "numeric",
-  }).format(new Date(value));
+  }).format(date);
 }
 
 function getOcrCacheKey(bookId, pageNumber) {
@@ -362,6 +365,15 @@ function captureCount(book, type) {
   if (Array.isArray(captures)) return captures.length;
   const count = Number(captures);
   return Number.isFinite(count) ? count : 0;
+}
+
+function pluralize(count, singular, plural = `${singular}s`) {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
+function getNotePage(page) {
+  const number = Number(page);
+  return Number.isFinite(number) && number > 0 ? Math.floor(number) : 1;
 }
 
 function createCoverMarkup(book, size = "small") {
@@ -701,6 +713,50 @@ function createDashboardBook(book) {
   `;
 }
 
+function createNotesBookCard(book) {
+  const percent = progressPercent(book);
+  const quotes = captureCount(book, "notes");
+  const title = escapeHtml(book.title);
+  const author = book.author ? ` by ${escapeHtml(book.author)}` : "";
+  const href = `quotes.html?id=${encodeURIComponent(book.id)}`;
+
+  return `
+    <article class="book-notebook notes-book-card">
+      <a class="notes-book-link" href="${href}">
+        <div class="book-notebook-header">
+          ${createCoverMarkup(book)}
+          <div>
+            <span class="note-type">Uploaded book</span>
+            <h2>${title}</h2>
+            <p>Page ${book.currentPage} of ${book.totalPages}${author}</p>
+          </div>
+        </div>
+        <div class="mini-track" aria-hidden="true"><span style="width: ${percent}%"></span></div>
+        <div class="notes-book-meta">
+          <span>${pluralize(quotes, "quote")}</span>
+        </div>
+      </a>
+    </article>
+  `;
+}
+
+function createQuoteCard(note, options = {}) {
+  const noteText = normalizeCaptureText(note.note || "");
+  const page = getNotePage(note.page);
+  const card = `
+    <article class="embedded-note quote-card" data-quote-card>
+      <span>Page ${escapeHtml(page)} &middot; ${formatDate(note.createdAt)}</span>
+      <p>${escapeHtml(note.quote || "")}</p>
+      ${noteText ? `<small>${escapeHtml(noteText)}</small>` : ""}
+    </article>
+  `;
+
+  if (!options.bookId) return card;
+
+  const href = `reader.html?id=${encodeURIComponent(options.bookId)}&page=${encodeURIComponent(page)}&mode=quotes`;
+  return `<a class="quote-card-link" href="${href}">${card}</a>`;
+}
+
 function getBookCaptureCounts(books) {
   return books.reduce(
     (totals, book) => {
@@ -778,10 +834,10 @@ function fitSidebarText() {
   });
 }
 
-function renderEmptyState(container, message) {
+function renderEmptyState(container, message, title = "No uploaded books yet") {
   container.innerHTML = `
     <div class="empty-library">
-      <strong>No uploaded books yet</strong>
+      <strong>${escapeHtml(title)}</strong>
       <p>${message}</p>
     </div>
   `;
@@ -841,64 +897,65 @@ async function renderNotes(loadedBooks) {
 
   const saved = loadedBooks || (await getSavedBooks());
 
-  if (notesColumn) {
-    if (!saved.length) {
-      renderEmptyState(notesColumn, "Upload a PDF first. Notes will be grouped under each real book.");
-    } else {
-      notesColumn.innerHTML = saved
-        .map(
-          (book) => {
-            const notes = Array.isArray(book.notes) ? book.notes : [];
-            const summaries = Array.isArray(book.summaries) ? book.summaries : [];
-            const noteMarkup = notes.length
-              ? notes
-                  .map(
-                    (note) => `
-                      <article class="embedded-note">
-                        <span>Page ${note.page} &middot; ${formatDate(note.createdAt)}</span>
-                        <p>${escapeHtml(note.quote)}</p>
-                        ${note.note ? `<small>${escapeHtml(note.note)}</small>` : ""}
-                      </article>
-                    `
-                  )
-                  .join("")
-              : `
-                <article class="embedded-note">
-                  <span>Ready for notes</span>
-                  <p>Open this PDF from Shelf to save quote notes while reading.</p>
-                </article>
-              `;
-            const summaryMarkup = summaries
-              .map(
-                (summary) => `
-                  <article class="embedded-note summary-entry">
-                    <span>Summary &middot; Page ${summary.page} &middot; ${formatDate(summary.createdAt)}</span>
-                    <p>${escapeHtml(summary.summary)}</p>
-                  </article>
-                `
-              )
-              .join("");
-
-            return `
-              <section class="book-notebook" aria-label="${escapeHtml(book.title)} notes">
-              <div class="book-notebook-header">
-                ${createCoverMarkup(book)}
-                <div>
-                  <span class="note-type">Uploaded book</span>
-                  <h2>${escapeHtml(book.title)}</h2>
-                  <p>${book.author ? `By ${escapeHtml(book.author)}. ` : ""}${notes.length} notes, ${summaries.length} summaries</p>
-                </div>
-              </div>
-              ${noteMarkup}
-              ${summaryMarkup}
-            </section>
-          `;
-          }
-        )
-        .join("");
-    }
+  if (!saved.length) {
+    renderEmptyState(notesColumn, "Upload a PDF first, then save quotes from the reader.");
+  } else {
+    notesColumn.innerHTML = saved.map(createNotesBookCard).join("");
   }
 
+  fitSidebarText();
+}
+
+async function renderQuotesPage() {
+  const title = document.querySelector("[data-quotes-title]");
+  const meta = document.querySelector("[data-quotes-meta]");
+  const search = document.querySelector("[data-quote-search]");
+  const list = document.querySelector("[data-quote-list]");
+  if (!title || !meta || !search || !list) return;
+
+  const id = new URLSearchParams(window.location.search).get("id");
+  if (!id) {
+    title.textContent = "Book not selected";
+    meta.textContent = "Choose a book from Notes to view its quotes.";
+    search.disabled = true;
+    renderEmptyState(list, "Open a book from Notes to see its saved quotes.", "Book not selected");
+    return;
+  }
+
+  const book = await getBook(id);
+  if (!book) {
+    title.textContent = "Book not found";
+    meta.textContent = "This book could not be loaded.";
+    search.disabled = true;
+    renderEmptyState(list, "Go back to Notes and choose another book.", "Book not found");
+    return;
+  }
+
+  const notes = Array.isArray(book.notes) ? book.notes : [];
+  const renderFilteredQuotes = () => {
+    const query = search.value.trim().toLowerCase();
+    const filtered = query
+      ? notes.filter((note) => {
+          const quote = String(note.quote || "").toLowerCase();
+          const noteText = String(note.note || "").toLowerCase();
+          return quote.includes(query) || noteText.includes(query);
+        })
+      : notes;
+
+    if (!notes.length) {
+      renderEmptyState(list, "No quotes saved for this book yet. Open it from Shelf to save passages.", "No quotes yet");
+    } else if (!filtered.length) {
+      renderEmptyState(list, "No quotes match that keyword.", "No matches");
+    } else {
+      list.innerHTML = filtered.map((note) => createQuoteCard(note, { bookId: book.id })).join("");
+    }
+  };
+
+  title.textContent = book.title;
+  meta.textContent = `${book.author ? `By ${book.author}. ` : ""}Page ${book.currentPage} of ${book.totalPages}. ${pluralize(notes.length, "quote")}.`;
+  search.disabled = !notes.length;
+  search.addEventListener("input", renderFilteredQuotes);
+  renderFilteredQuotes();
   fitSidebarText();
 }
 
@@ -907,6 +964,7 @@ async function refreshCurrentPage() {
   await renderDashboard(books);
   await renderShelf(books);
   await renderNotes(books);
+  await renderQuotesPage();
 
   if (document.body.dataset.page === "reader") {
     const params = new URLSearchParams(window.location.search);
@@ -958,7 +1016,12 @@ async function renderReader() {
     showStatus("The saved PDF could not be opened.", "error");
     return;
   }
-  let currentPage = Math.min(Math.max(book.currentPage || 1, 1), pdf.numPages);
+  const requestedPage = Number(params.get("page"));
+  let currentPage = Math.min(
+    Math.max(Number.isFinite(requestedPage) && requestedPage > 0 ? Math.floor(requestedPage) : book.currentPage || 1, 1),
+    pdf.numPages
+  );
+  let readerMode = params.get("mode") === "quotes" ? "quotes" : "notes";
 
   const title = document.querySelector("#readerTitle");
   const sidebarTitle = document.querySelector("#readerSidebarTitle");
@@ -971,8 +1034,11 @@ async function renderReader() {
   const zoomOut = document.querySelector("#zoomOut");
   const zoomIn = document.querySelector("#zoomIn");
   const zoomStatus = document.querySelector("#zoomStatus");
-  const rename = document.querySelector("#readerRename");
+  const quotesLink = document.querySelector("#readerQuotesLink");
   const noteForm = document.querySelector("[data-note-form]");
+  const modeButtons = document.querySelectorAll("[data-reader-mode]");
+  const pageQuotesPanel = document.querySelector("[data-page-quotes-panel]");
+  const pageQuotesList = document.querySelector("[data-reader-page-quotes]");
   const textLayer = document.querySelector("#textLayer");
   const textLayerStatus = document.querySelector("#textLayerStatus");
   const saveSelectedQuote = document.querySelector("#saveSelectedQuote");
@@ -985,8 +1051,50 @@ async function renderReader() {
 
   title.textContent = book.title;
   sidebarTitle.textContent = book.title;
-  rename.dataset.renameBook = book.id;
+  if (quotesLink) quotesLink.href = `quotes.html?id=${encodeURIComponent(book.id)}`;
   fitSidebarText();
+
+  function updateReaderUrl() {
+    const nextParams = new URLSearchParams(window.location.search);
+    nextParams.set("id", book.id);
+    nextParams.set("page", String(currentPage));
+    nextParams.set("mode", readerMode);
+    window.history.replaceState({}, "", `${window.location.pathname}?${nextParams.toString()}`);
+  }
+
+  function renderPageQuotes() {
+    if (!pageQuotesList) return;
+
+    const notes = Array.isArray(book.notes) ? book.notes : [];
+    const pageNotes = notes.filter((note) => getNotePage(note.page) === currentPage);
+    if (!pageNotes.length) {
+      renderEmptyState(pageQuotesList, "No quotes saved on this page yet.", "No page quotes");
+      return;
+    }
+
+    pageQuotesList.innerHTML = pageNotes.map((note) => createQuoteCard(note)).join("");
+  }
+
+  function setReaderMode(mode) {
+    readerMode = mode === "quotes" ? "quotes" : "notes";
+    modeButtons.forEach((button) => {
+      const active = button.dataset.readerMode === readerMode;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-pressed", String(active));
+    });
+    if (noteForm) {
+      const hideNotes = readerMode !== "notes";
+      noteForm.hidden = hideNotes;
+      noteForm.setAttribute("aria-hidden", String(hideNotes));
+    }
+    if (pageQuotesPanel) {
+      const hideQuotes = readerMode !== "quotes";
+      pageQuotesPanel.hidden = hideQuotes;
+      pageQuotesPanel.setAttribute("aria-hidden", String(hideQuotes));
+    }
+    if (readerMode === "quotes") renderPageQuotes();
+    updateReaderUrl();
+  }
 
   async function renderPageToCanvas(page, targetCanvas, targetContext, scale) {
     const viewport = page.getViewport({ scale });
@@ -1142,6 +1250,8 @@ async function renderReader() {
     zoomStatus.textContent = `${Math.round(zoomLevel * 100)}%`;
     prev.disabled = pageNumber <= 1;
     next.disabled = pageNumber >= pdf.numPages;
+    renderPageQuotes();
+    updateReaderUrl();
     await updateBookPage(book.id, pageNumber);
   }
 
@@ -1168,6 +1278,9 @@ async function renderReader() {
   next.addEventListener("click", goToNextPage);
   zoomOut?.addEventListener("click", () => setZoom(zoomLevel - 0.15));
   zoomIn?.addEventListener("click", () => setZoom(zoomLevel + 0.15));
+  modeButtons.forEach((button) => {
+    button.addEventListener("click", () => setReaderMode(button.dataset.readerMode));
+  });
 
   pdfStage.addEventListener(
     "wheel",
@@ -1216,11 +1329,16 @@ async function renderReader() {
 
     noteForm.elements.quote.value = quote;
     const note = normalizeCaptureText(noteForm.elements.note.value);
-    await addBookCapture(book.id, "notes", { quote, note, page: currentPage });
+    const saved = await addBookCapture(book.id, "notes", { quote, note, page: currentPage });
+    if (saved) {
+      if (!Array.isArray(book.notes)) book.notes = [];
+      book.notes = [saved, ...book.notes.filter((entry) => entry.id !== saved.id)];
+    }
     noteForm.reset();
     window.getSelection()?.removeAllRanges();
     refreshSelectionAction();
     setTextLayerStatus("Quote saved.");
+    renderPageQuotes();
     await refreshCurrentPage();
   });
 
@@ -1246,11 +1364,16 @@ async function renderReader() {
     const note = normalizeCaptureText(noteForm.elements.note.value);
     if (!quote) return;
 
-    await addBookCapture(book.id, "notes", { quote, note, page: currentPage });
+    const saved = await addBookCapture(book.id, "notes", { quote, note, page: currentPage });
+    if (saved) {
+      if (!Array.isArray(book.notes)) book.notes = [];
+      book.notes = [saved, ...book.notes.filter((entry) => entry.id !== saved.id)];
+    }
     noteForm.reset();
     window.getSelection()?.removeAllRanges();
     refreshSelectionAction();
     setTextLayerStatus("Quote saved.");
+    renderPageQuotes();
     await refreshCurrentPage();
   });
 
@@ -1259,6 +1382,7 @@ async function renderReader() {
     window.readerResizeTimer = window.setTimeout(() => drawPage(currentPage), 180);
   });
 
+  setReaderMode(readerMode);
   await drawPage(currentPage);
 }
 
@@ -1271,6 +1395,7 @@ async function init() {
     await renderDashboard(books);
     await renderShelf(books);
     await renderNotes(books);
+    await renderQuotesPage();
     await renderReader();
   } catch (error) {
     console.error(error);

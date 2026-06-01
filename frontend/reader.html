@@ -40,7 +40,7 @@
           <h1 id="readerTitle">Opening book...</h1>
         </div>
         <div class="topbar-actions">
-          <button class="ghost-action" id="readerRename" type="button">Rename</button>
+          <a class="ghost-action link-action" id="readerQuotesLink" href="notes.html">Quotes</a>
           <a class="ghost-action link-action" href="shelf.html">Back to Shelf</a>
         </div>
       </header>
@@ -77,6 +77,11 @@
         </section>
 
         <section class="capture-panel" aria-label="Reading captures">
+          <div class="reader-mode-switch" aria-label="Reader side panel mode">
+            <button class="reader-mode-button active" type="button" data-reader-mode="notes" aria-pressed="true">Take note</button>
+            <button class="reader-mode-button" type="button" data-reader-mode="quotes" aria-pressed="false">Page quotes</button>
+          </div>
+
           <form class="capture-card" data-note-form>
             <div>
               <p class="eyebrow">Quote note</p>
@@ -92,6 +97,14 @@
             </label>
             <button class="primary-action" type="submit">Save Note</button>
           </form>
+
+          <div class="capture-card page-quotes-card" data-page-quotes-panel hidden>
+            <div>
+              <p class="eyebrow">Page quotes</p>
+              <h2>Saved on this page</h2>
+            </div>
+            <div class="reader-page-quotes" data-reader-page-quotes></div>
+          </div>
         </section>
       </div>
     </main>

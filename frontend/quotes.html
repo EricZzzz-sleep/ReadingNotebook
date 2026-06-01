@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quotes | Reading Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Literata:opsz,wght@7..72,600;7..72,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="quotes">
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Main navigation">
+      <div class="brand">
+        <div>
+          <strong>Reading Tracker</strong>
+          <span>Personal library</span>
+        </div>
+      </div>
+
+      <nav class="nav-list" aria-label="Reading sections">
+        <a class="nav-item" href="index.html">Dashboard</a>
+        <a class="nav-item" href="shelf.html">Shelf</a>
+        <a class="nav-item active" href="notes.html" aria-current="page">Notes</a>
+      </nav>
+    </aside>
+
+    <main class="page">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Quote notebook</p>
+          <h1 data-quotes-title>Opening quotes...</h1>
+          <p class="page-subtitle" data-quotes-meta>Loading saved passages.</p>
+        </div>
+        <div class="topbar-actions">
+          <a class="ghost-action link-action" href="notes.html">Back to Notes</a>
+          <button class="primary-action" type="button" data-upload-pdf>Upload PDF</button>
+        </div>
+      </header>
+
+      <section class="quote-workspace" aria-label="Saved quotes">
+        <label class="field-label quote-search-label">
+          <span>Search quotes</span>
+          <input class="field-input" type="search" placeholder="Search by quote or side note" data-quote-search>
+        </label>
+        <div class="quote-list" data-quote-list>
+          <div class="empty-library">
+            <strong>Loading quotes...</strong>
+            <p>Fetching this book's saved passages.</p>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script src="app.js" type="module"></script>
+</body>
+</html>

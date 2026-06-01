@@ -125,7 +125,10 @@ button {
 .primary-action:focus-visible,
 .ghost-action:focus-visible,
 .filter-chip:focus-visible,
-.book-open-link:focus-visible {
+.book-open-link:focus-visible,
+.notes-book-link:focus-visible,
+.quote-card-link:focus-visible,
+.reader-mode-button:focus-visible {
   outline: 3px solid rgba(243, 200, 106, 0.86);
   outline-offset: 3px;
 }
@@ -315,6 +318,14 @@ h1 {
   color: #d9e0e4;
   font-size: 1.02rem;
   line-height: 1.65;
+}
+
+.page-subtitle {
+  max-width: 700px;
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-weight: 600;
+  line-height: 1.6;
 }
 
 .progress-block {
@@ -890,6 +901,45 @@ h1 {
   box-shadow: 0 12px 36px rgba(29, 38, 45, 0.08);
 }
 
+.notes-book-card {
+  padding: 0;
+  overflow: hidden;
+  transition: border-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+}
+
+.notes-book-card:hover {
+  border-color: rgba(47, 125, 122, 0.32);
+  transform: translateY(-2px);
+  box-shadow: 0 16px 42px rgba(29, 38, 45, 0.12);
+}
+
+.notes-book-link {
+  display: grid;
+  gap: 14px;
+  padding: 22px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.notes-book-link:hover h2 {
+  color: var(--teal);
+}
+
+.notes-book-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.notes-book-meta span {
+  padding: 8px 10px;
+  border-radius: 8px;
+  color: var(--ink);
+  background: #f7f4ef;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
 .book-notebook-header {
   display: grid;
   grid-template-columns: 64px minmax(0, 1fr);
@@ -936,6 +986,44 @@ h1 {
   margin: 8px 0 0;
   color: var(--ink);
   line-height: 1.55;
+}
+
+.embedded-note small {
+  display: block;
+  margin-top: 10px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.quote-workspace {
+  display: grid;
+  gap: 16px;
+}
+
+.quote-search-label {
+  max-width: 620px;
+}
+
+.quote-list {
+  display: grid;
+  gap: 14px;
+}
+
+.quote-card-link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.quote-card-link:hover .quote-card {
+  border-left-color: var(--coral);
+  transform: translateY(-2px);
+}
+
+.quote-card {
+  border-left-color: var(--teal);
+  box-shadow: 0 10px 28px rgba(29, 38, 45, 0.07);
+  transition: border-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
 }
 
 .featured-note .embedded-note p {
@@ -1264,6 +1352,33 @@ body[data-page="reader"] .page {
   display: none;
 }
 
+.reader-mode-switch {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid rgba(23, 33, 43, 0.09);
+  border-radius: 8px;
+  background: rgba(255, 253, 248, 0.92);
+  box-shadow: 0 12px 36px rgba(29, 38, 45, 0.08);
+}
+
+.reader-mode-button {
+  min-height: 40px;
+  border: 0;
+  border-radius: 8px;
+  color: var(--muted);
+  background: transparent;
+  font: inherit;
+  font-weight: 900;
+}
+
+.reader-mode-button.active {
+  color: #ffffff;
+  background: var(--teal);
+  box-shadow: 0 10px 22px rgba(47, 125, 122, 0.24);
+}
+
 .capture-card {
   display: grid;
   align-content: start;
@@ -1275,6 +1390,10 @@ body[data-page="reader"] .page {
   box-shadow: 0 12px 36px rgba(29, 38, 45, 0.08);
 }
 
+.capture-card[hidden] {
+  display: none;
+}
+
 .capture-card h2 {
   margin-bottom: 0;
   font-size: 1.45rem;
@@ -1282,6 +1401,15 @@ body[data-page="reader"] .page {
 
 .capture-card .primary-action {
   justify-self: start;
+}
+
+.page-quotes-card .empty-library {
+  padding: 18px;
+}
+
+.reader-page-quotes {
+  display: grid;
+  gap: 12px;
 }
 
 .capture-card-wide {
