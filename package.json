@@ -15,7 +15,6 @@
     "appId": "com.quotebook.app",
     "productName": "QuoteBook",
     "afterPack": "scripts/sign_mac_app.js",
-    "afterSign": "scripts/notarize_mac_app.js",
     "files": [
       "desktop/main.js"
     ],
