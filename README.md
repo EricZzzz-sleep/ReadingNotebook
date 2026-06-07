@@ -58,6 +58,8 @@ Download the installer for your laptop:
 
 These links download the latest installer from GitHub Releases. The first version is unsigned, so macOS or Windows may show a security warning before opening it.
 
+On macOS, if QuoteBook is blocked because the developer cannot be verified, open the Applications folder, Control-click `QuoteBook`, choose `Open`, then choose `Open` again. This is expected for the unsigned first version.
+
 If a download link returns `404`, wait for the `Build desktop installers` GitHub Actions workflow to finish after the latest push to `main`. That workflow creates the GitHub Release and uploads the installer files.
 
 If the workflow fails, open GitHub Releases, create a release with the tag `latest`, and upload the local file `dist/QuoteBook-mac.dmg` as a temporary Mac download while the Windows build is fixed.

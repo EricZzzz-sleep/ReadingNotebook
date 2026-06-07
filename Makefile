@@ -16,6 +16,7 @@ desktop-check:
 	node --check desktop/main.js
 	node --check scripts/create_desktop_icons.js
 	node --check scripts/run_pyinstaller.js
+	node --check scripts/sign_mac_app.js
 	$(PYTHON) -m py_compile desktop/backend_launcher.py
 	$(PYTHON) -m py_compile scripts/create_desktop_icons.py
 
