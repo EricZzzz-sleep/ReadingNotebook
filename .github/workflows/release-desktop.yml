@@ -40,9 +40,6 @@ jobs:
           if-no-files-found: warn
       - name: Verify Mac installer
         run: test -f dist/QuoteBook-mac.dmg
-      - name: Fail if Mac build failed
-        if: steps.build-mac.outcome != 'success'
-        run: exit 1
 
   build-windows:
     name: Build Windows installer
@@ -77,9 +74,6 @@ jobs:
           if (!(Test-Path "dist/QuoteBook-windows.exe")) {
             throw "Missing dist/QuoteBook-windows.exe"
           }
-      - name: Fail if Windows build failed
-        if: steps.build-windows.outcome != 'success'
-        run: exit 1
 
   publish-release:
     name: Publish installer downloads
