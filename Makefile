@@ -19,6 +19,7 @@ desktop-check:
 	node --check scripts/sign_mac_app.js
 	node --check scripts/notarize_mac_app.js
 	node --check scripts/enable_notarization.js
+	bash -n scripts/create_mac_dmg_fallback.sh
 	$(PYTHON) -m py_compile desktop/backend_launcher.py
 	$(PYTHON) -m py_compile scripts/create_desktop_icons.py
 
