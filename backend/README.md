@@ -20,4 +20,4 @@ backend/uploads/pdfs/
 
 The frontend expects the backend API on the same origin as the served pages. With the commands above, open `http://localhost:8000`.
 
-For a downloadable laptop-style app, host the `frontend/` folder as a static PWA. Static hosting stores each user's library in their own browser storage. Use the Django backend when you want uploaded PDFs saved to the local server filesystem instead.
+For downloadable laptop apps, use the Electron/PyInstaller packaging flow from the project root. Desktop builds store each user's library in their OS app-data folder. The static PWA remains available for browser-based hosting.

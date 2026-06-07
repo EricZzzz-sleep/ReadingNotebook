@@ -1,0 +1,57 @@
+{
+  "name": "quotebook",
+  "version": "1.0.0",
+  "description": "QuoteBook desktop app",
+  "main": "desktop/main.js",
+  "scripts": {
+    "desktop": "electron .",
+    "check:desktop": "node --check desktop/main.js",
+    "icons": "node scripts/create_desktop_icons.js",
+    "build:backend": "node scripts/run_pyinstaller.js",
+    "build:mac": "npm run icons && npm run build:backend && electron-builder --mac dmg",
+    "build:win": "npm run icons && npm run build:backend && electron-builder --win nsis"
+  },
+  "build": {
+    "appId": "com.quotebook.app",
+    "productName": "QuoteBook",
+    "files": [
+      "desktop/main.js"
+    ],
+    "extraResources": [
+      {
+        "from": "desktop/backend-dist/",
+        "to": "backend/",
+        "filter": [
+          "quotebook-backend",
+          "quotebook-backend.exe"
+        ]
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "icon": "desktop/build/icon.icns",
+      "target": [
+        "dmg"
+      ]
+    },
+    "dmg": {
+      "artifactName": "QuoteBook-mac.dmg"
+    },
+    "win": {
+      "icon": "desktop/build/icon.ico",
+      "target": [
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "QuoteBook-windows.exe"
+    }
+  },
+  "devDependencies": {
+    "electron": "^33.4.11",
+    "electron-builder": "^25.1.8"
+  }
+}

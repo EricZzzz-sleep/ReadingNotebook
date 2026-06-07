@@ -2,6 +2,12 @@ __pycache__/
 *.py[cod]
 .DS_Store
 .venv/
+node_modules/
+dist/
+desktop/backend-build/
+desktop/backend-dist/
+desktop/build/
+build/
 backend/db.sqlite3
 backend/uploads/*
 !backend/uploads/.gitkeep

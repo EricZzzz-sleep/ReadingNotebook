@@ -1,7 +1,18 @@
+import os
+import sys
 from pathlib import Path
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+DATA_DIR = Path(os.environ.get("QUOTEBOOK_DATA_DIR", BASE_DIR)).expanduser().resolve()
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+if os.environ.get("QUOTEBOOK_FRONTEND_ROOT"):
+    FRONTEND_ROOT = Path(os.environ["QUOTEBOOK_FRONTEND_ROOT"]).expanduser().resolve()
+elif getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+    FRONTEND_ROOT = Path(sys._MEIPASS) / "frontend"
+else:
+    FRONTEND_ROOT = BASE_DIR.parent / "frontend"
 
 SECRET_KEY = "reading-tracker-local-dev-key"
 DEBUG = True
@@ -49,7 +60,7 @@ WSGI_APPLICATION = "reading_tracker.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "NAME": DATA_DIR / "db.sqlite3",
     }
 }
 
@@ -60,7 +71,7 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "uploads"
-FRONTEND_ROOT = BASE_DIR.parent / "frontend"
+MEDIA_ROOT = DATA_DIR / "uploads"
+MEDIA_ROOT.mkdir(parents=True, exist_ok=True)
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

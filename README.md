@@ -49,33 +49,34 @@ ReadingTracker/
 
 The Django backend serves the frontend pages, stores book metadata, exposes the API, and saves uploaded PDFs under `backend/uploads/pdfs/`. The root `index.html` redirects to the dashboard for easier direct opening and deployment.
 
-## Download Or Install
+## Download QuoteBook
 
-There are two easy ways to use QuoteBook on a laptop.
+Download the installer for your laptop:
 
-**Download QuoteBook:** [Click here to download the ZIP](https://github.com/EricZzzz-sleep/ReadingTracker/archive/refs/heads/main.zip)
+- [Download for Mac](https://github.com/EricZzzz-sleep/ReadingTracker/releases/latest/download/QuoteBook-mac.dmg)
+- [Download for Windows](https://github.com/EricZzzz-sleep/ReadingTracker/releases/latest/download/QuoteBook-windows.exe)
 
-### Option 1: Install From The Website
+These links download the latest installer from GitHub Releases. The first version is unsigned, so macOS or Windows may show a security warning before opening it.
 
-This is the best option for most people after QuoteBook is published online.
+After installing, open QuoteBook from your Applications folder, Dock, Start menu, or Launchpad. Your PDFs and notes are saved locally on your laptop in QuoteBook's app-data folder.
 
-1. Open the QuoteBook website link.
-2. Click `Install App` on the dashboard if the button appears.
-3. If there is no button, use the browser menu:
-   - Chrome or Edge: click the install icon in the address bar, or open the three-dot menu and choose `Install QuoteBook`.
-   - Safari on macOS: open `File` and choose `Add to Dock`.
-4. Open QuoteBook from your laptop's Applications, Dock, Start menu, or Launchpad.
+## Web Version
 
-When installed from a static website, each person's PDFs and notes stay on their own laptop in browser storage.
+QuoteBook can also be hosted as an installable web app. After it is opened from a hosted URL, users can install it from the browser and launch it from their laptop like a normal app.
 
-### Option 2: Download The Project
+To publish the web version without a backend, host the static frontend files with GitHub Pages, Netlify, Vercel, or any static web host:
 
-Use this if you want to run QuoteBook directly from the downloaded files.
+```text
+frontend/
+```
 
-1. Click the download link above.
-2. Unzip the downloaded file.
-3. Open a terminal in the unzipped `ReadingTracker-main` folder.
-4. Run:
+Static hosting uses the browser's local storage fallback, so each person's books, PDFs, and notes stay on their own laptop.
+
+## Run Locally For Development
+
+Use this if you want to run QuoteBook from the project files.
+
+You need Python 3.10 or newer. From the project root, run one command:
 
 ```bash
 python3 run.py
@@ -95,26 +96,6 @@ http://localhost:8000
 
 The first launch may take a minute because QuoteBook creates a local `.venv`, installs Django, and prepares the SQLite database.
 
-## Run Locally For Development
-
-You need Python 3.10 or newer. From the project root, run one command:
-
-```bash
-python3 run.py
-```
-
-On Windows, use:
-
-```bash
-python run.py
-```
-
-The launcher creates a local `.venv`, installs Django, prepares the SQLite database, and serves the app and API together at:
-
-```text
-http://localhost:8000
-```
-
 If port `8000` is busy, choose another port:
 
 ```bash
@@ -126,20 +107,6 @@ If you already use Make, this also works:
 ```bash
 make run
 ```
-
-## Publish Online
-
-QuoteBook is an installable web app. After it is opened from a hosted URL, users can install it from the browser and launch it from their laptop like a normal app.
-
-To publish it online without a backend, host the static frontend files with GitHub Pages, Netlify, Vercel, or any static web host:
-
-```text
-frontend/
-```
-
-Static hosting uses the browser's local storage fallback, so each person's books, PDFs, and notes stay on their own laptop. For shared server storage, deploy the Django backend and serve the same frontend from Django.
-
-Once hosted, share the website link. Users can open it in Chrome, Edge, or Safari and use the browser's Install/Add to Dock option. On supported browsers, the dashboard also shows an `Install App` button.
 
 If you prefer to run Django manually:
 
@@ -160,7 +127,9 @@ cd backend
 
 ## Storage Notes
 
-Uploaded PDFs are saved to `backend/uploads/pdfs/`, and book metadata is stored in `backend/db.sqlite3`.
+In the desktop app, uploaded PDFs and book metadata are saved in QuoteBook's app-data folder.
+
+When running Django locally, uploaded PDFs are saved to `backend/uploads/pdfs/`, and book metadata is stored in `backend/db.sqlite3`.
 
 If the backend is unavailable, the frontend falls back to browser IndexedDB storage. Browser storage is separated by origin, so `http://localhost:8000/` and `http://localhost:8002/` have different local libraries.
 

@@ -1,4 +1,4 @@
-.PHONY: install migrate run
+.PHONY: install migrate run desktop-check desktop-backend desktop-mac desktop-win
 
 PYTHON ?= python3
 PORT ?= 8000
@@ -11,3 +11,20 @@ migrate:
 
 run:
 	PORT=$(PORT) $(PYTHON) run.py
+
+desktop-check:
+	node --check desktop/main.js
+	node --check scripts/create_desktop_icons.js
+	node --check scripts/run_pyinstaller.js
+	$(PYTHON) -m py_compile desktop/backend_launcher.py
+	$(PYTHON) -m py_compile scripts/create_desktop_icons.py
+
+desktop-backend:
+	$(PYTHON) -m pip install -r backend/requirements-desktop.txt
+	npm run build:backend
+
+desktop-mac:
+	npm run build:mac
+
+desktop-win:
+	npm run build:win
